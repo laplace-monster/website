@@ -1,15 +1,1284 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-    <head>
-        <meta charset="UTF-8">
-        <title>游戏</title>
-    </head>
-    <body>
-        <h1>午餐包</h1>
-    </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>双人四子棋</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --bg-soft: #ffffff;
+      --panel: rgba(255,255,255,0.82);
+      --text: #1f2937;
+      --subtext: #6b7280;
+      --line: #e5e7eb;
+      --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+      --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.06);
+
+      --board: #dbeafe;
+      --board-deep: #bfdbfe;
+      --slot: #f8fbff;
+      --red: #ef4444;
+      --red-dark: #dc2626;
+      --yellow: #f59e0b;
+      --yellow-dark: #d97706;
+      --accent: #3b82f6;
+      --accent-soft: #eff6ff;
+      --success: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top left, #ffffff 0%, #f8fbff 32%, #f6f8fc 100%);
+      color: var(--text);
+      font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      padding:
+        max(16px, env(safe-area-inset-top))
+        max(14px, env(safe-area-inset-right))
+        max(18px, env(safe-area-inset-bottom))
+        max(14px, env(safe-area-inset-left));
+    }
+
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .left,
+    .right {
+      min-width: 0;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.88);
+      backdrop-filter: blur(14px);
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      padding: 22px 22px 16px;
+      margin-bottom: 16px;
+    }
+
+    .title-row {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .logo {
+      width: 58px;
+      height: 58px;
+      border-radius: 18px;
+      background:
+        linear-gradient(145deg, #ffffff, #eef5ff);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), var(--shadow-soft);
+      display: grid;
+      place-items: center;
+      position: relative;
+      overflow: hidden;
+      flex: none;
+    }
+
+    .logo::before,
+    .logo::after {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      top: 20px;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.7);
+    }
+
+    .logo::before {
+      left: 12px;
+      background: radial-gradient(circle at 35% 35%, #ffb0b0, var(--red));
+    }
+
+    .logo::after {
+      right: 12px;
+      background: radial-gradient(circle at 35% 35%, #ffe39a, var(--yellow));
+    }
+
+    .hero h1 {
+      margin: 0 0 6px;
+      font-size: clamp(1.55rem, 2vw + 1rem, 2.15rem);
+      line-height: 1.15;
+      letter-spacing: 0.02em;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--subtext);
+      line-height: 1.65;
+      font-size: 0.98rem;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.88);
+      border: 1px solid var(--line);
+      color: #334155;
+      font-size: 0.93rem;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      flex: none;
+    }
+
+    .dot.red {
+      background: linear-gradient(145deg, #ffb3b3, var(--red));
+    }
+
+    .dot.yellow {
+      background: linear-gradient(145deg, #ffe4a6, var(--yellow));
+    }
+
+    .dot.blue {
+      background: linear-gradient(145deg, #93c5fd, var(--accent));
+    }
+
+    .board-card {
+      padding: 18px;
+      overflow: hidden;
+    }
+
+    .top-panel {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 48px;
+      padding: 10px 14px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #ffffff, #f8fbff);
+      border: 1px solid #e8eef7;
+      box-shadow: var(--shadow-soft);
+      flex: 1;
+      min-width: 220px;
+    }
+
+    .status-indicator {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      flex: none;
+      background: var(--accent);
+      box-shadow: 0 0 0 5px rgba(59,130,246,0.12);
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .status-indicator.red {
+      background: var(--red);
+      box-shadow: 0 0 0 5px rgba(239,68,68,0.12);
+    }
+
+    .status-indicator.yellow {
+      background: var(--yellow);
+      box-shadow: 0 0 0 5px rgba(245,158,11,0.12);
+    }
+
+    .status-text {
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+      font: inherit;
+    }
+
+    button:active {
+      transform: translateY(1px) scale(0.99);
+    }
+
+    .btn {
+      padding: 11px 16px;
+      border-radius: 14px;
+      font-weight: 700;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .btn-primary {
+      background: linear-gradient(180deg, #4f9cff, var(--accent));
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #fff;
+      color: #334155;
+      border: 1px solid var(--line);
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .scores {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .score-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(247,250,255,0.95));
+      border: 1px solid #edf2f7;
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: var(--shadow-soft);
+      min-width: 0;
+    }
+
+    .score-label {
+      color: var(--subtext);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+
+    .score-value {
+      font-size: clamp(1.35rem, 2vw, 1.9rem);
+      font-weight: 800;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .piece {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      flex: none;
+      box-shadow: inset -3px -4px 7px rgba(0,0,0,0.12), inset 2px 3px 7px rgba(255,255,255,0.5);
+    }
+
+    .piece.red {
+      background: radial-gradient(circle at 32% 28%, #ffb8b8 0%, #ff7b7b 24%, var(--red) 62%, var(--red-dark) 100%);
+    }
+
+    .piece.yellow {
+      background: radial-gradient(circle at 32% 28%, #fff2be 0%, #ffd96f 24%, var(--yellow) 62%, var(--yellow-dark) 100%);
+    }
+
+    .piece.ghost {
+      background: radial-gradient(circle at 32% 28%, #f4f7fc 0%, #e5edf8 45%, #dbe5f1 100%);
+      box-shadow: inset -2px -4px 8px rgba(148,163,184,0.28), inset 1px 2px 6px rgba(255,255,255,0.75);
+    }
+
+    .game-shell {
+      border-radius: 28px;
+      background: linear-gradient(180deg, #ffffff 0%, #f6faff 100%);
+      border: 1px solid #eef3fa;
+      padding: 14px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+    }
+
+    .drop-row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: clamp(6px, 1vw, 10px);
+      margin-bottom: 12px;
+      position: relative;
+      z-index: 3;
+    }
+
+    .drop-btn {
+      min-width: 0;
+      height: clamp(36px, 6vw, 48px);
+      border-radius: 16px;
+      background: linear-gradient(180deg, #ffffff, #eff6ff);
+      border: 1px solid #dbeafe;
+      color: #1d4ed8;
+      font-weight: 800;
+      font-size: clamp(0.92rem, 1.4vw, 1rem);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .drop-btn:hover:not(:disabled) {
+      box-shadow: 0 10px 18px rgba(59,130,246,0.12);
+      transform: translateY(-1px);
+    }
+
+    .drop-btn::before {
+      content: "↓";
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .drop-btn[data-hover="red"] {
+      background: linear-gradient(180deg, #fff5f5, #ffe8e8);
+      color: var(--red-dark);
+      border-color: #fecaca;
+    }
+
+    .drop-btn[data-hover="yellow"] {
+      background: linear-gradient(180deg, #fffcf0, #fff4cf);
+      color: var(--yellow-dark);
+      border-color: #fde68a;
+    }
+
+    .board-wrap {
+      overflow: hidden;
+      border-radius: 24px;
+      background: linear-gradient(180deg, #eef6ff, #dcecff);
+      border: 1px solid #d6e7fb;
+      padding: clamp(8px, 1.6vw, 12px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), var(--shadow-soft);
+      position: relative;
+      z-index: 1;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: clamp(6px, 1vw, 10px);
+      background: linear-gradient(180deg, var(--board), var(--board-deep));
+      padding: clamp(8px, 1.6vw, 12px);
+      border-radius: 22px;
+      position: relative;
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    .cell {
+      aspect-ratio: 1 / 1;
+      width: 100%;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 35% 35%, #ffffff 0%, #f7fbff 32%, var(--slot) 68%, #e7f0fb 100%);
+      box-shadow:
+        inset 0 6px 12px rgba(255,255,255,0.9),
+        inset 0 -7px 12px rgba(148,163,184,0.18);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.15s ease;
+      cursor: pointer;
+    }
+
+    .cell.win {
+      animation: pulseWin 0.9s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulseWin {
+      0% {
+        transform: scale(1);
+        box-shadow:
+          inset 0 6px 12px rgba(255,255,255,0.9),
+          inset 0 -7px 12px rgba(148,163,184,0.18),
+          0 0 0 0 rgba(16,185,129,0.28);
+      }
+      100% {
+        transform: scale(1.03);
+        box-shadow:
+          inset 0 6px 12px rgba(255,255,255,0.9),
+          inset 0 -7px 12px rgba(148,163,184,0.18),
+          0 0 0 8px rgba(16,185,129,0);
+      }
+    }
+
+    .disc {
+      position: absolute;
+      inset: 6%;
+      border-radius: 50%;
+      transform: translateY(-135%) scale(0.92);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .disc.red {
+      background: radial-gradient(circle at 32% 28%, #ffbaba 0%, #ff7d7d 24%, var(--red) 62%, var(--red-dark) 100%);
+      box-shadow:
+        inset 3px 4px 8px rgba(255,255,255,0.38),
+        inset -4px -5px 10px rgba(0,0,0,0.14),
+        0 8px 14px rgba(239,68,68,0.18);
+    }
+
+    .disc.yellow {
+      background: radial-gradient(circle at 32% 28%, #fff1bf 0%, #ffd96d 24%, var(--yellow) 62%, var(--yellow-dark) 100%);
+      box-shadow:
+        inset 3px 4px 8px rgba(255,255,255,0.38),
+        inset -4px -5px 10px rgba(0,0,0,0.14),
+        0 8px 14px rgba(245,158,11,0.18);
+    }
+
+    .disc.show {
+      animation: dropIn 0.36s cubic-bezier(0.25, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes dropIn {
+      0% {
+        transform: translateY(-135%) scale(0.92);
+        opacity: 0.25;
+      }
+      75% {
+        transform: translateY(4%) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+    }
+
+    .legend {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.9);
+      border: 1px solid var(--line);
+      color: #475569;
+      font-size: 0.92rem;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .panel {
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 1.08rem;
+      letter-spacing: 0.01em;
+    }
+
+    .turn-badges {
+      display: grid;
+      gap: 10px;
+    }
+
+    .turn-badge {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, #ffffff, #fafcff);
+      box-shadow: var(--shadow-soft);
+      transition: border-color 0.2s ease, transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .turn-badge.active.red {
+      border-color: #fecaca;
+      box-shadow: 0 10px 22px rgba(239,68,68,0.11);
+      transform: translateY(-1px);
+    }
+
+    .turn-badge.active.yellow {
+      border-color: #fde68a;
+      box-shadow: 0 10px 22px rgba(245,158,11,0.12);
+      transform: translateY(-1px);
+    }
+
+    .badge-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .badge-text {
+      min-width: 0;
+    }
+
+    .badge-title {
+      font-weight: 800;
+      margin-bottom: 3px;
+    }
+
+    .badge-sub {
+      color: var(--subtext);
+      font-size: 0.92rem;
+    }
+
+    .badge-flag {
+      padding: 7px 11px;
+      border-radius: 999px;
+      font-size: 0.86rem;
+      font-weight: 700;
+      background: #f8fafc;
+      color: #64748b;
+      border: 1px solid var(--line);
+      white-space: nowrap;
+    }
+
+    .badge-flag.active-red {
+      color: var(--red-dark);
+      background: #fff1f2;
+      border-color: #fecdd3;
+    }
+
+    .badge-flag.active-yellow {
+      color: var(--yellow-dark);
+      background: #fffbea;
+      border-color: #fde68a;
+    }
+
+    .rules {
+      display: grid;
+      gap: 12px;
+    }
+
+    .rule-item {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 12px;
+      align-items: start;
+      padding: 13px 12px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #ffffff, #fbfdff);
+      border: 1px solid #edf2f7;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .rule-num {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      color: #1d4ed8;
+      background: var(--accent-soft);
+      border: 1px solid #dbeafe;
+    }
+
+    .rule-content {
+      color: #334155;
+      line-height: 1.65;
+      font-size: 0.95rem;
+    }
+
+    .footer-note {
+      color: var(--subtext);
+      line-height: 1.7;
+      font-size: 0.92rem;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(18px + env(safe-area-inset-bottom));
+      transform: translateX(-50%) translateY(18px);
+      opacity: 0;
+      pointer-events: none;
+      padding: 12px 16px;
+      border-radius: 14px;
+      background: rgba(30,41,59,0.92);
+      color: #fff;
+      font-size: 0.93rem;
+      box-shadow: var(--shadow);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      z-index: 30;
+      max-width: min(92vw, 520px);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .right {
+        order: 2;
+      }
+
+      .left {
+        order: 1;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding-top: max(12px, env(safe-area-inset-top));
+      }
+
+      .hero,
+      .panel,
+      .board-card {
+        padding: 14px;
+      }
+
+      .scores {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .score-card {
+        padding: 12px 10px;
+      }
+
+      .score-label {
+        font-size: 0.84rem;
+      }
+
+      .score-value {
+        gap: 7px;
+        font-size: 1.15rem;
+      }
+
+      .piece {
+        width: 18px;
+        height: 18px;
+      }
+
+      .status {
+        min-width: 0;
+        width: 100%;
+      }
+
+      .actions {
+        width: 100%;
+      }
+
+      .actions .btn {
+        flex: 1;
+      }
+
+      .drop-btn {
+        border-radius: 12px;
+      }
+
+      .board-wrap {
+        border-radius: 18px;
+      }
+
+      .board {
+        border-radius: 18px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="left">
+      <section class="hero card">
+        <div class="title-row">
+          <div class="brand">
+            <div class="logo" aria-hidden="true"></div>
+            <div>
+              <h1>四子棋 Connect Four</h1>
+              <p>标准 7×6 棋盘，双人轮流落子。支持手机与电脑，界面清爽，规则说明完整，开箱即玩。</p>
+            </div>
+          </div>
+        </div>
+        <div class="chips">
+          <span class="chip"><span class="dot red"></span>红方先手</span>
+          <span class="chip"><span class="dot yellow"></span>黄方后手</span>
+          <span class="chip"><span class="dot blue"></span>横 / 竖 / 斜 连成四子即胜</span>
+        </div>
+      </section>
+
+      <section class="board-card card">
+        <div class="top-panel">
+          <div class="status" aria-live="polite">
+            <span id="statusIndicator" class="status-indicator red" aria-hidden="true"></span>
+            <div id="statusText" class="status-text">当前回合：红方（先手）</div>
+          </div>
+          <div class="actions">
+            <button id="restartBtn" class="btn btn-primary" type="button">重新开始</button>
+            <button id="undoBtn" class="btn btn-secondary" type="button">悔棋一步</button>
+          </div>
+        </div>
+
+        <div class="scores" aria-label="比分板">
+          <div class="score-card">
+            <div class="score-label">红方胜场</div>
+            <div class="score-value">
+              <span class="piece red" aria-hidden="true"></span>
+              <span id="redScore">0</span>
+            </div>
+          </div>
+          <div class="score-card">
+            <div class="score-label">平局次数</div>
+            <div class="score-value">
+              <span class="piece ghost" aria-hidden="true"></span>
+              <span id="drawScore">0</span>
+            </div>
+          </div>
+          <div class="score-card">
+            <div class="score-label">黄方胜场</div>
+            <div class="score-value">
+              <span class="piece yellow" aria-hidden="true"></span>
+              <span id="yellowScore">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="game-shell">
+          <div id="dropRow" class="drop-row" aria-label="选择落子列"></div>
+
+          <div class="board-wrap">
+            <div
+              id="board"
+              class="board"
+              role="grid"
+              aria-label="四子棋棋盘，7列6行。点击上方箭头或棋盘中的任意格所在列即可落子。"
+            ></div>
+          </div>
+
+          <div class="legend">
+            <span class="legend-item"><span class="piece red"></span>红方：先手</span>
+            <span class="legend-item"><span class="piece yellow"></span>黄方：后手</span>
+            <span class="legend-item"><span class="piece ghost"></span>空位：棋子会自动落到底部可用格</span>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <aside class="right">
+      <section class="panel card">
+        <h2>当前对局</h2>
+        <div class="turn-badges">
+          <div id="redBadge" class="turn-badge active red">
+            <div class="badge-left">
+              <span class="piece red" aria-hidden="true"></span>
+              <div class="badge-text">
+                <div class="badge-title">红方玩家</div>
+                <div class="badge-sub">先手落子</div>
+              </div>
+            </div>
+            <span id="redFlag" class="badge-flag active-red">进行中</span>
+          </div>
+
+          <div id="yellowBadge" class="turn-badge">
+            <div class="badge-left">
+              <span class="piece yellow" aria-hidden="true"></span>
+              <div class="badge-text">
+                <div class="badge-title">黄方玩家</div>
+                <div class="badge-sub">后手落子</div>
+              </div>
+            </div>
+            <span id="yellowFlag" class="badge-flag">等待中</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel card">
+        <h2>规则说明</h2>
+        <div class="rules">
+          <div class="rule-item">
+            <div class="rule-num">1</div>
+            <div class="rule-content">标准四子棋使用 <strong>7 列 × 6 行</strong> 棋盘。两位玩家分别执红、黄两色棋子。</div>
+          </div>
+          <div class="rule-item">
+            <div class="rule-num">2</div>
+            <div class="rule-content">红方先手，双方轮流选择一列落子。棋子会因重力效果，自动落到该列 <strong>最底部的空格</strong>。</div>
+          </div>
+          <div class="rule-item">
+            <div class="rule-num">3</div>
+            <div class="rule-content">任意一方只要先把自己的棋子连成连续 <strong>4 个</strong>，无论是 <strong>横向、纵向、左斜或右斜</strong>，立即获胜。</div>
+          </div>
+          <div class="rule-item">
+            <div class="rule-num">4</div>
+            <div class="rule-content">如果棋盘已满，且双方都没有形成四连，则本局判为 <strong>平局</strong>。</div>
+          </div>
+          <div class="rule-item">
+            <div class="rule-num">5</div>
+            <div class="rule-content">本页面支持 <strong>重新开始</strong> 与 <strong>悔棋一步</strong>。悔棋仅回退最近一步。</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel card">
+        <h2>操作提示</h2>
+        <p class="footer-note">
+          电脑端可点击上方箭头按钮落子，也可直接点击棋盘中任意一格所在的列；手机端同样支持。<br />
+          这是一个<strong>在线网页双人同屏对战</strong>版本：两位玩家在同一设备上轮流操作即可。
+        </p>
+      </section>
+    </aside>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const COLS = 7;
+      const ROWS = 6;
+      const EMPTY = 0;
+      const RED = 1;
+      const YELLOW = 2;
+
+      const boardEl = document.getElementById("board");
+      const dropRowEl = document.getElementById("dropRow");
+      const statusTextEl = document.getElementById("statusText");
+      const statusIndicatorEl = document.getElementById("statusIndicator");
+      const restartBtn = document.getElementById("restartBtn");
+      const undoBtn = document.getElementById("undoBtn");
+
+      const redScoreEl = document.getElementById("redScore");
+      const yellowScoreEl = document.getElementById("yellowScore");
+      const drawScoreEl = document.getElementById("drawScore");
+
+      const redBadge = document.getElementById("redBadge");
+      const yellowBadge = document.getElementById("yellowBadge");
+      const redFlag = document.getElementById("redFlag");
+      const yellowFlag = document.getElementById("yellowFlag");
+
+      const toastEl = document.getElementById("toast");
+
+      let board = [];
+      let currentPlayer = RED;
+      let gameOver = false;
+      let moveHistory = [];
+      let scores = {
+        red: 0,
+        yellow: 0,
+        draw: 0
+      };
+      let winningCells = [];
+      let toastTimer = null;
+
+      function createEmptyBoard() {
+        return Array.from({ length: ROWS }, () => Array(COLS).fill(EMPTY));
+      }
+
+      function init() {
+        createDropButtons();
+        createBoard();
+        bindEvents();
+        resetGame(false);
+      }
+
+      function bindEvents() {
+        restartBtn.addEventListener("click", () => {
+          resetGame(true);
+          showToast("已重新开始新的一局。");
+        });
+
+        undoBtn.addEventListener("click", undoMove);
+
+        // 上方按钮：事件委托，稳定
+        dropRowEl.addEventListener("click", (e) => {
+          const btn = e.target.closest(".drop-btn");
+          if (!btn) return;
+          const col = Number(btn.dataset.col);
+          dropInColumn(col);
+        });
+
+        // 棋盘任意格：点击所在列即可落子
+        boardEl.addEventListener("click", (e) => {
+          const cell = e.target.closest(".cell");
+          if (!cell) return;
+          const col = Number(cell.dataset.col);
+          dropInColumn(col);
+        });
+
+        // 键盘支持 1~7 落子
+        document.addEventListener("keydown", (e) => {
+          if (e.key >= "1" && e.key <= "7") {
+            dropInColumn(Number(e.key) - 1);
+          } else if ((e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z")) {
+            e.preventDefault();
+            undoMove();
+          } else if (e.key === "r" || e.key === "R") {
+            resetGame(true);
+            showToast("已重新开始新的一局。");
+          }
+        });
+
+        // hover/focus 提示颜色
+        dropRowEl.addEventListener("mouseover", handleDropButtonHover);
+        dropRowEl.addEventListener("mouseout", clearDropButtonHover);
+        dropRowEl.addEventListener("focusin", handleDropButtonHover);
+        dropRowEl.addEventListener("focusout", clearDropButtonHover);
+      }
+
+      function handleDropButtonHover(e) {
+        const btn = e.target.closest(".drop-btn");
+        if (!btn || btn.disabled) return;
+        btn.dataset.hover = currentPlayer === RED ? "red" : "yellow";
+      }
+
+      function clearDropButtonHover(e) {
+        const btn = e.target.closest(".drop-btn");
+        if (!btn) return;
+        btn.dataset.hover = "";
+      }
+
+      function createDropButtons() {
+        dropRowEl.innerHTML = "";
+        for (let col = 0; col < COLS; col++) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "drop-btn";
+          btn.dataset.col = String(col);
+          btn.setAttribute("aria-label", `向第 ${col + 1} 列落子`);
+          btn.title = `向第 ${col + 1} 列落子`;
+          dropRowEl.appendChild(btn);
+        }
+      }
+
+      function createBoard() {
+        boardEl.innerHTML = "";
+        for (let row = 0; row < ROWS; row++) {
+          for (let col = 0; col < COLS; col++) {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.dataset.row = String(row);
+            cell.dataset.col = String(col);
+            cell.setAttribute("role", "gridcell");
+            cell.setAttribute("aria-label", `第 ${row + 1} 行，第 ${col + 1} 列`);
+            boardEl.appendChild(cell);
+          }
+        }
+      }
+
+      function resetGame(keepScores = true) {
+        board = createEmptyBoard();
+        currentPlayer = RED;
+        gameOver = false;
+        moveHistory = [];
+        winningCells = [];
+        if (!keepScores) {
+          scores = { red: 0, yellow: 0, draw: 0 };
+        }
+        render();
+      }
+
+      function getNextOpenRow(col) {
+        for (let row = ROWS - 1; row >= 0; row--) {
+          if (board[row][col] === EMPTY) return row;
+        }
+        return -1;
+      }
+
+      function isBoardFull() {
+        for (let col = 0; col < COLS; col++) {
+          if (board[0][col] === EMPTY) return false;
+        }
+        return true;
+      }
+
+      function dropInColumn(col) {
+        if (gameOver) {
+          showToast("本局已结束，请点击“重新开始”。");
+          return;
+        }
+
+        if (col < 0 || col >= COLS) return;
+
+        const row = getNextOpenRow(col);
+        if (row === -1) {
+          showToast(`第 ${col + 1} 列已满，请选择其他列。`);
+          return;
+        }
+
+        board[row][col] = currentPlayer;
+        moveHistory.push({ row, col, player: currentPlayer });
+
+        const result = checkWinner(row, col, currentPlayer);
+        if (result.win) {
+          winningCells = result.cells;
+          gameOver = true;
+          if (currentPlayer === RED) {
+            scores.red++;
+          } else {
+            scores.yellow++;
+          }
+          render({ animatedCell: { row, col } });
+          showToast(currentPlayer === RED ? "红方获胜！成功连成四子。" : "黄方获胜！成功连成四子。");
+          return;
+        }
+
+        if (isBoardFull()) {
+          gameOver = true;
+          scores.draw++;
+          render({ animatedCell: { row, col } });
+          showToast("棋盘已满，双方都未形成四连，本局平局。");
+          return;
+        }
+
+        currentPlayer = currentPlayer === RED ? YELLOW : RED;
+        render({ animatedCell: { row, col } });
+      }
+
+      function undoMove() {
+        if (moveHistory.length === 0) {
+          showToast("当前没有可悔棋的步骤。");
+          return;
+        }
+
+        if (gameOver) {
+          showToast("本局已结束，请重新开始新的一局。");
+          return;
+        }
+
+        const lastMove = moveHistory.pop();
+        board[lastMove.row][lastMove.col] = EMPTY;
+        currentPlayer = lastMove.player;
+        winningCells = [];
+        render();
+        showToast(`已悔棋：撤回第 ${lastMove.col + 1} 列的落子。`);
+      }
+
+      function checkWinner(row, col, player) {
+        const directions = [
+          [0, 1],   // 横向
+          [1, 0],   // 纵向
+          [1, 1],   // 主对角线
+          [1, -1]   // 副对角线
+        ];
+
+        for (const [dr, dc] of directions) {
+          const cells = [{ row, col }];
+
+          let r = row + dr;
+          let c = col + dc;
+          while (isInside(r, c) && board[r][c] === player) {
+            cells.push({ row: r, col: c });
+            r += dr;
+            c += dc;
+          }
+
+          r = row - dr;
+          c = col - dc;
+          while (isInside(r, c) && board[r][c] === player) {
+            cells.unshift({ row: r, col: c });
+            r -= dr;
+            c -= dc;
+          }
+
+          if (cells.length >= 4) {
+            return { win: true, cells };
+          }
+        }
+
+        return { win: false, cells: [] };
+      }
+
+      function isInside(row, col) {
+        return row >= 0 && row < ROWS && col >= 0 && col < COLS;
+      }
+
+      function render(options = {}) {
+        renderDropButtons();
+        renderBoard(options.animatedCell || null);
+        renderStatus();
+        renderScores();
+        renderTurnPanel();
+        undoBtn.disabled = moveHistory.length === 0 || gameOver;
+      }
+
+      function renderDropButtons() {
+        const buttons = dropRowEl.querySelectorAll(".drop-btn");
+        buttons.forEach((btn, col) => {
+          const full = getNextOpenRow(col) === -1;
+          btn.disabled = gameOver || full;
+          btn.dataset.hover = "";
+          btn.title = full ? `第 ${col + 1} 列已满` : `向第 ${col + 1} 列落子`;
+          btn.setAttribute("aria-label", full ? `第 ${col + 1} 列已满` : `向第 ${col + 1} 列落子`);
+        });
+      }
+
+      function renderBoard(animatedCell) {
+        const cells = boardEl.querySelectorAll(".cell");
+        cells.forEach((cell) => {
+          const row = Number(cell.dataset.row);
+          const col = Number(cell.dataset.col);
+          const value = board[row][col];
+
+          cell.innerHTML = "";
+          cell.classList.remove("win");
+
+          if (value !== EMPTY) {
+            const disc = document.createElement("div");
+            disc.className = "disc " + (value === RED ? "red" : "yellow");
+
+            if (animatedCell && animatedCell.row === row && animatedCell.col === col) {
+              disc.classList.add("show");
+            } else {
+              disc.style.transform = "translateY(0) scale(1)";
+              disc.style.opacity = "1";
+            }
+
+            cell.appendChild(disc);
+          }
+
+          if (winningCells.some((item) => item.row === row && item.col === col)) {
+            cell.classList.add("win");
+          }
+        });
+      }
+
+      function renderStatus() {
+        statusIndicatorEl.className = "status-indicator";
+
+        if (gameOver) {
+          if (winningCells.length > 0) {
+            const winner = board[winningCells[0].row][winningCells[0].col];
+            if (winner === RED) {
+              statusIndicatorEl.classList.add("red");
+              statusTextEl.textContent = "本局结束：红方获胜，已形成连续四子。";
+            } else {
+              statusIndicatorEl.classList.add("yellow");
+              statusTextEl.textContent = "本局结束：黄方获胜，已形成连续四子。";
+            }
+          } else {
+            statusTextEl.textContent = "本局结束：棋盘已满，双方战成平局。";
+          }
+          return;
+        }
+
+        if (currentPlayer === RED) {
+          statusIndicatorEl.classList.add("red");
+          statusTextEl.textContent = "当前回合：红方（先手）";
+        } else {
+          statusIndicatorEl.classList.add("yellow");
+          statusTextEl.textContent = "当前回合：黄方（后手）";
+        }
+      }
+
+      function renderScores() {
+        redScoreEl.textContent = String(scores.red);
+        yellowScoreEl.textContent = String(scores.yellow);
+        drawScoreEl.textContent = String(scores.draw);
+      }
+
+      function renderTurnPanel() {
+        redBadge.className = "turn-badge";
+        yellowBadge.className = "turn-badge";
+        redFlag.className = "badge-flag";
+        yellowFlag.className = "badge-flag";
+
+        if (gameOver) {
+          if (winningCells.length > 0) {
+            const winner = board[winningCells[0].row][winningCells[0].col];
+            if (winner === RED) {
+              redBadge.classList.add("active", "red");
+              redFlag.classList.add("active-red");
+              redFlag.textContent = "获胜";
+              yellowFlag.textContent = "落败";
+            } else {
+              yellowBadge.classList.add("active", "yellow");
+              yellowFlag.classList.add("active-yellow");
+              yellowFlag.textContent = "获胜";
+              redFlag.textContent = "落败";
+            }
+          } else {
+            redFlag.textContent = "平局";
+            yellowFlag.textContent = "平局";
+          }
+          return;
+        }
+
+        if (currentPlayer === RED) {
+          redBadge.classList.add("active", "red");
+          redFlag.classList.add("active-red");
+          redFlag.textContent = "进行中";
+          yellowFlag.textContent = "等待中";
+        } else {
+          yellowBadge.classList.add("active", "yellow");
+          yellowFlag.classList.add("active-yellow");
+          yellowFlag.textContent = "进行中";
+          redFlag.textContent = "等待中";
+        }
+      }
+
+      function showToast(message) {
+        toastEl.textContent = message;
+        toastEl.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          toastEl.classList.remove("show");
+        }, 2200);
+      }
+
+      init();
+    })();
+  </script>
+</body>
 </html>
-
-
-
-
-
